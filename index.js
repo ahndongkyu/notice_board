@@ -40,6 +40,20 @@ app.post('/posts', async (req, res) => {
   }
 });
 
+// 2. 게시글 조회
+app.get('/posts', async (req, res) => {
+  try {
+    // board_dong 테이블에서 모든 게시글을 가져오고, 작성 날짜 기준 내림차순 정렬
+    const result = await pool.query(
+      'SELECT * FROM board_dong ORDER BY created_at DESC'
+    );
+    res.status(200).json(result.rows); // 성공 시 모든 게시글 데이터를 JSON 형식으로 반환
+  } catch (err) {
+    console.error(err); // 에러 발생 시 서버 콘솔에 로그 출력
+    res.status(500).json({ error: 'Failed to fetch posts' }); // 클라이언트에 에러 메시지 응답
+  }
+});
+
 // 서버 실행
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`); // 서버가 실행 중인 포트 출력
