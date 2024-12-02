@@ -78,6 +78,34 @@ app.put('/posts/:id', async (req, res) => {
   }
 });
 
+// 4. 게시글 삭제
+app.delete('/posts/:id', async (req, res) => {
+  const { id } = req.params; // URL에서 게시글 ID 추출
+
+  try {
+    // 게시글 삭제 SQL 쿼리 실행
+    const result = await pool.query(
+      'DELETE FROM board_dong WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    // 삭제된 행이 없으면 (존재하지 않는 ID)
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    res
+      .status(200)
+      .json({
+        message: 'Post deleted successfully',
+        deletedPost: result.rows[0],
+      }); // 성공 응답
+  } catch (err) {
+    console.error('Error deleting post:', err.message); // 에러 로그 출력
+    res.status(500).json({ error: 'Failed to delete post' }); // 실패 응답
+  }
+});
+
 // 서버 실행
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`); // 서버가 실행 중인 포트 출력
