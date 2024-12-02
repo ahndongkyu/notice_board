@@ -1,7 +1,6 @@
 require('dotenv').config(); // 환경 변수 로드
 const express = require('express'); // Express.js
 const { Pool } = require('pg'); // PostgreSQL 연결 라이브러리
-const bodyParser = require('body-parser'); // 요청 본문 파싱
 
 const app = express(); // Express 애플리케이션 생성
 const port = 8000; // 서버 포트 번호
@@ -25,8 +24,7 @@ app.get('/', (req, res) => {
 
 // 1. 게시글 등록
 app.post('/posts', async (req, res) => {
-  // 제목, 내용, 작성자 추출
-  const { title, content, author } = req.body;
+  const { title, content, author } = req.body; // 제목, 내용, 작성자 추출
   try {
     // board_dong 테이블에 새로운 게시글 추가
     const result = await pool.query(
@@ -55,18 +53,18 @@ app.get('/posts', async (req, res) => {
 });
 
 // 3. 게시글 수정
-app.put('/posts/:id', async (req, res) => {
-  const { id } = req.params; // URL에서 게시글 ID 추출
+app.put('/posts/:post_no', async (req, res) => {
+  const { post_no } = req.params; // URL에서 게시글 고유 번호 추출
   const { title, content, author } = req.body; // 요청 본문에서 수정할 데이터 추출
 
   try {
     // 게시글 수정 쿼리
     const result = await pool.query(
-      'UPDATE board_dong SET title = $1, content = $2, author = $3 WHERE id = $4 RETURNING *',
-      [title, content, author, id] // $1, $2, $3, $4에 매핑
+      'UPDATE board_dong SET title = $1, content = $2, author = $3, updated_at = CURRENT_TIMESTAMP WHERE post_no = $4 RETURNING *',
+      [title, content, author, post_no] // $1, $2, $3, $4에 매핑
     );
 
-    // 수정된 게시글이 없는 경우 (id에 해당하는 게시글이 없을 때)
+    // 수정된 게시글이 없는 경우 (post_no에 해당하는 게시글이 없을 때)
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Post not found' });
     }
@@ -79,27 +77,25 @@ app.put('/posts/:id', async (req, res) => {
 });
 
 // 4. 게시글 삭제
-app.delete('/posts/:id', async (req, res) => {
-  const { id } = req.params; // URL에서 게시글 ID 추출
+app.delete('/posts/:post_no', async (req, res) => {
+  const { post_no } = req.params; // URL에서 게시글 고유 번호 추출
 
   try {
     // 게시글 삭제 SQL 쿼리 실행
     const result = await pool.query(
-      'DELETE FROM board_dong WHERE id = $1 RETURNING *',
-      [id]
+      'DELETE FROM board_dong WHERE post_no = $1 RETURNING *',
+      [post_no]
     );
 
-    // 삭제된 행이 없으면 (존재하지 않는 ID)
+    // 삭제된 행이 없으면 (존재하지 않는 post_no)
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Post not found' });
     }
 
-    res
-      .status(200)
-      .json({
-        message: 'Post deleted successfully',
-        deletedPost: result.rows[0],
-      }); // 성공 응답
+    res.status(200).json({
+      message: 'Post deleted successfully',
+      deletedPost: result.rows[0],
+    }); // 성공 응답
   } catch (err) {
     console.error('Error deleting post:', err.message); // 에러 로그 출력
     res.status(500).json({ error: 'Failed to delete post' }); // 실패 응답
