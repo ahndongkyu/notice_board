@@ -54,6 +54,30 @@ app.get('/posts', async (req, res) => {
   }
 });
 
+// 3. 게시글 수정
+app.put('/posts/:id', async (req, res) => {
+  const { id } = req.params; // URL에서 게시글 ID 추출
+  const { title, content, author } = req.body; // 요청 본문에서 수정할 데이터 추출
+
+  try {
+    // 게시글 수정 쿼리
+    const result = await pool.query(
+      'UPDATE board_dong SET title = $1, content = $2, author = $3 WHERE id = $4 RETURNING *',
+      [title, content, author, id] // $1, $2, $3, $4에 매핑
+    );
+
+    // 수정된 게시글이 없는 경우 (id에 해당하는 게시글이 없을 때)
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    res.status(200).json(result.rows[0]); // 성공 시 수정된 게시글 반환
+  } catch (err) {
+    console.error(err); // 에러 로그 출력
+    res.status(500).json({ error: 'Failed to update post' }); // 실패 응답
+  }
+});
+
 // 서버 실행
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`); // 서버가 실행 중인 포트 출력
